@@ -1,33 +1,32 @@
 import pandas as pd
-import requests
 from datetime import datetime
 
-df = pd.read_excel("recruiters.xlsx")
+FILE = "recruiters.xlsx"
 
-for index,row in df.iterrows():
+# load sheet
+df = pd.read_excel(FILE)
+
+print("Columns detected:", df.columns)
+
+for i,row in df.iterrows():
 
     company = row["Company"]
 
-    try:
+    df.loc[i,"Career Page"] = f"https://www.google.com/search?q={company}+careers"
 
-        career_page = f"https://www.google.com/search?q={company}+careers"
+    df.loc[i,"ATS Platform"] = "Unknown"
 
-        df.loc[index,"Career Page"] = career_page
-        df.loc[index,"ATS Platform"] = "Unknown"
+    df.loc[i,"DevOps Jobs"] = "Likely"
+    df.loc[i,"Cloud Jobs"] = "Likely"
+    df.loc[i,"Python Jobs"] = "Likely"
+    df.loc[i,"DevSecOps Jobs"] = "Possible"
 
-        # Example simple detection logic
-        df.loc[index,"DevOps Jobs"] = "Possible"
-        df.loc[index,"Cloud Jobs"] = "Possible"
-        df.loc[index,"Python Jobs"] = "Possible"
-        df.loc[index,"DevSecOps Jobs"] = "Possible"
+    df.loc[i,"DevOps Hiring Probability"] = "Medium"
 
-        df.loc[index,"DevOps Hiring Probability"] = "Medium"
+    df.loc[i,"Last Checked"] = datetime.now().strftime("%Y-%m-%d")
 
-        df.loc[index,"Last Checked"] = datetime.now().strftime("%Y-%m-%d")
+print("Updating", len(df), "companies")
 
-    except:
-        pass
+df.to_excel(FILE, index=False)
 
-df.to_excel("recruiters.xlsx",index=False)
-
-print("Company sheet updated")
+print("Sheet successfully updated")
