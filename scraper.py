@@ -13,6 +13,11 @@ queries = [
 'site:linkedin.com/in "Platform engineer recruiter" "Pune"',
 'site:linkedin.com/in "DevOps hiring manager" "Pune"',
 'site:linkedin.com/in "Site reliability recruiter" "Pune"'
+'site:linkedin.com/in "DevOps hiring" "Pune"',
+'site:linkedin.com/in "Cloud talent partner"',
+'site:linkedin.com/in "Infrastructure recruiter"',
+'site:linkedin.com/in "Platform engineer recruiter"',
+'site:linkedin.com/in "Kubernetes hiring"',
 ]
 
 results = []
