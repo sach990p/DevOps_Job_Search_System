@@ -3,14 +3,29 @@ from datetime import datetime
 
 FILE = "recruiters.xlsx"
 
-# load sheet
 df = pd.read_excel(FILE)
+
+# Convert columns to string so pandas doesn't treat them as numbers
+text_columns = [
+"Career Page",
+"ATS Platform",
+"DevOps Jobs",
+"Cloud Jobs",
+"Python Jobs",
+"DevSecOps Jobs",
+"DevOps Hiring Probability",
+"Last Checked",
+"Notes"
+]
+
+for col in text_columns:
+    df[col] = df[col].astype("string")
 
 print("Columns detected:", df.columns)
 
 for i,row in df.iterrows():
 
-    company = row["Company"]
+    company = str(row["Company"])
 
     df.loc[i,"Career Page"] = f"https://www.google.com/search?q={company}+careers"
 
@@ -25,8 +40,8 @@ for i,row in df.iterrows():
 
     df.loc[i,"Last Checked"] = datetime.now().strftime("%Y-%m-%d")
 
-print("Updating", len(df), "companies")
+print("Updating",len(df),"companies")
 
-df.to_excel(FILE, index=False)
+df.to_excel(FILE,index=False)
 
 print("Sheet successfully updated")
