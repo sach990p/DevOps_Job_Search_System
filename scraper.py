@@ -8,16 +8,16 @@ API_KEY = os.environ["GOOGLE_API_KEY"]
 CX = os.environ["SEARCH_ENGINE_ID"]
 
 queries = [
-'site:linkedin.com/in "DevOps recruiter" "Pune"',
-'site:linkedin.com/in "Cloud recruiter" "Pune"',
-'site:linkedin.com/in "Platform engineer recruiter" "Pune"',
-'site:linkedin.com/in "DevOps hiring manager" "Pune"',
-'site:linkedin.com/in "Site reliability recruiter" "Pune"'
-'site:linkedin.com/in "DevOps hiring" "Pune"',
-'site:linkedin.com/in "Cloud talent partner"',
-'site:linkedin.com/in "Infrastructure recruiter"',
-'site:linkedin.com/in "Platform engineer recruiter"',
-'site:linkedin.com/in "Kubernetes hiring"',
+    'site:linkedin.com/in "DevOps recruiter" "Pune"',
+    'site:linkedin.com/in "Cloud recruiter" "Pune"',
+    'site:linkedin.com/in "Platform engineer recruiter" "Pune"',
+    'site:linkedin.com/in "DevOps hiring manager" "Pune"',
+    'site:linkedin.com/in "Site reliability recruiter" "Pune"',
+    'site:linkedin.com/in "DevOps hiring" "Pune"',
+    'site:linkedin.com/in "Cloud talent partner"',
+    'site:linkedin.com/in "Infrastructure recruiter"',
+    'site:linkedin.com/in "Platform engineer recruiter"',
+    'site:linkedin.com/in "Kubernetes hiring"'
 ]
 
 results = []
@@ -34,7 +34,7 @@ def google_search(query):
     }
 
     try:
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=15)
         data = response.json()
 
         if "items" not in data:
@@ -42,18 +42,21 @@ def google_search(query):
 
         return data["items"]
 
-    except:
+    except Exception as e:
+        print("Search error:", e)
         return []
 
 
 for query in queries:
 
+    print("Running query:", query)
+
     items = google_search(query)
 
     for item in items:
 
-        link = item["link"]
-        title = item["title"]
+        link = item.get("link", "")
+        title = item.get("title", "")
 
         if "linkedin.com/in/" in link:
 
@@ -71,10 +74,12 @@ df = pd.DataFrame(results)
 
 try:
     old = pd.read_excel("recruiters.xlsx")
-    df = pd.concat([old, df]).drop_duplicates()
+    df = pd.concat([old, df])
+    df = df.drop_duplicates(subset=["Profile"])
 except:
     pass
 
 df.to_excel("recruiters.xlsx", index=False)
 
 print("Recruiter list updated.")
+print("Total recruiters:", len(df))
