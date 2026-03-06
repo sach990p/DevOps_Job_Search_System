@@ -1,0 +1,75 @@
+import requests
+import pandas as pd
+import os
+import time
+from datetime import datetime
+
+API_KEY = os.environ["GOOGLE_API_KEY"]
+CX = os.environ["SEARCH_ENGINE_ID"]
+
+queries = [
+'site:linkedin.com/in "DevOps recruiter" "Pune"',
+'site:linkedin.com/in "Cloud recruiter" "Pune"',
+'site:linkedin.com/in "Platform engineer recruiter" "Pune"',
+'site:linkedin.com/in "DevOps hiring manager" "Pune"',
+'site:linkedin.com/in "Site reliability recruiter" "Pune"'
+]
+
+results = []
+
+def google_search(query):
+
+    url = "https://www.googleapis.com/customsearch/v1"
+
+    params = {
+        "key": API_KEY,
+        "cx": CX,
+        "q": query,
+        "num": 10
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+
+        if "items" not in data:
+            return []
+
+        return data["items"]
+
+    except:
+        return []
+
+
+for query in queries:
+
+    items = google_search(query)
+
+    for item in items:
+
+        link = item["link"]
+        title = item["title"]
+
+        if "linkedin.com/in/" in link:
+
+            results.append({
+                "Name": title,
+                "Profile": link,
+                "Query": query,
+                "Date Found": datetime.now().strftime("%Y-%m-%d")
+            })
+
+    time.sleep(2)
+
+
+df = pd.DataFrame(results)
+
+try:
+    old = pd.read_excel("recruiters.xlsx")
+    df = pd.concat([old, df]).drop_duplicates()
+except:
+    pass
+
+df.to_excel("recruiters.xlsx", index=False)
+
+print("Recruiter list updated.")
