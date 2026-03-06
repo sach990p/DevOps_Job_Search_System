@@ -1,105 +1,33 @@
-import requests
 import pandas as pd
-import os
-import time
+import requests
 from datetime import datetime
 
-API_KEY = os.environ["GOOGLE_API_KEY"]
-CX = os.environ["SEARCH_ENGINE_ID"]
+df = pd.read_excel("recruiters.xlsx")
 
-queries = [
-"site:linkedin.com/in DevOps recruiter Pune",
-"site:linkedin.com/in Cloud recruiter Pune",
-"site:linkedin.com/in DevOps hiring manager India",
-"site:linkedin.com/in Site reliability recruiter India",
-"site:linkedin.com/in Kubernetes recruiter"
-]
+for index,row in df.iterrows():
 
-results = []
+    company = row["Company"]
 
-def detect_work_mode(text):
+    try:
 
-    text = text.lower()
+        career_page = f"https://www.google.com/search?q={company}+careers"
 
-    if "remote" in text:
-        return "Remote"
+        df.loc[index,"Career Page"] = career_page
+        df.loc[index,"ATS Platform"] = "Unknown"
 
-    if "hybrid" in text:
-        return "Hybrid"
+        # Example simple detection logic
+        df.loc[index,"DevOps Jobs"] = "Possible"
+        df.loc[index,"Cloud Jobs"] = "Possible"
+        df.loc[index,"Python Jobs"] = "Possible"
+        df.loc[index,"DevSecOps Jobs"] = "Possible"
 
-    if "onsite" in text or "on-site" in text:
-        return "Onsite"
+        df.loc[index,"DevOps Hiring Probability"] = "Medium"
 
-    return "Unknown"
+        df.loc[index,"Last Checked"] = datetime.now().strftime("%Y-%m-%d")
 
+    except:
+        pass
 
-def google_search(query):
+df.to_excel("recruiters.xlsx",index=False)
 
-    url = "https://www.googleapis.com/customsearch/v1"
-
-    params = {
-        "key": API_KEY,
-        "cx": CX,
-        "q": query,
-        "num": 10
-    }
-
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    if "items" not in data:
-        return []
-
-    return data["items"]
-
-
-for query in queries:
-
-    print("Searching:", query)
-
-    items = google_search(query)
-
-    for item in items:
-
-        title = item.get("title","")
-        link = item.get("link","")
-        snippet = item.get("snippet","")
-
-        if "linkedin.com/in/" not in link:
-            continue
-
-        recruiter_name = title.split("-")[0]
-
-        work_mode = detect_work_mode(snippet)
-
-        results.append({
-
-            "Company": "Unknown",
-            "Hiring Role": query,
-            "Recruiter Name": recruiter_name,
-            "LinkedIn Profile": link,
-            "Recruiter Email": "",
-            "Work Mode": work_mode,
-            "Location": "Pune/India",
-            "Source Query": query,
-            "Date Found": datetime.now().strftime("%Y-%m-%d")
-
-        })
-
-    time.sleep(2)
-
-
-df = pd.DataFrame(results)
-
-try:
-    old = pd.read_excel("recruiters.xlsx")
-    df = pd.concat([old, df])
-    df = df.drop_duplicates(subset=["LinkedIn Profile"])
-except:
-    pass
-
-
-df.to_excel("recruiters.xlsx", index=False)
-
-print("Recruiter database updated.")
-print("Total recruiters:", len(df))
+print("Company sheet updated")
