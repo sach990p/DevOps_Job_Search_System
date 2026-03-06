@@ -8,19 +8,30 @@ API_KEY = os.environ["GOOGLE_API_KEY"]
 CX = os.environ["SEARCH_ENGINE_ID"]
 
 queries = [
-    'site:linkedin.com/in "DevOps recruiter" "Pune"',
-    'site:linkedin.com/in "Cloud recruiter" "Pune"',
-    'site:linkedin.com/in "Platform engineer recruiter" "Pune"',
-    'site:linkedin.com/in "DevOps hiring manager" "Pune"',
-    'site:linkedin.com/in "Site reliability recruiter" "Pune"',
-    'site:linkedin.com/in "DevOps hiring" "Pune"',
-    'site:linkedin.com/in "Cloud talent partner"',
-    'site:linkedin.com/in "Infrastructure recruiter"',
-    'site:linkedin.com/in "Platform engineer recruiter"',
-    'site:linkedin.com/in "Kubernetes hiring"'
+"site:linkedin.com/in DevOps recruiter Pune",
+"site:linkedin.com/in Cloud recruiter Pune",
+"site:linkedin.com/in DevOps hiring manager India",
+"site:linkedin.com/in Site reliability recruiter India",
+"site:linkedin.com/in Kubernetes recruiter"
 ]
 
 results = []
+
+def detect_work_mode(text):
+
+    text = text.lower()
+
+    if "remote" in text:
+        return "Remote"
+
+    if "hybrid" in text:
+        return "Hybrid"
+
+    if "onsite" in text or "on-site" in text:
+        return "Onsite"
+
+    return "Unknown"
+
 
 def google_search(query):
 
@@ -33,39 +44,47 @@ def google_search(query):
         "num": 10
     }
 
-    try:
-        response = requests.get(url, params=params, timeout=15)
-        data = response.json()
+    response = requests.get(url, params=params)
+    data = response.json()
 
-        if "items" not in data:
-            return []
-
-        return data["items"]
-
-    except Exception as e:
-        print("Search error:", e)
+    if "items" not in data:
         return []
+
+    return data["items"]
 
 
 for query in queries:
 
-    print("Running query:", query)
+    print("Searching:", query)
 
     items = google_search(query)
 
     for item in items:
 
-        link = item.get("link", "")
-        title = item.get("title", "")
+        title = item.get("title","")
+        link = item.get("link","")
+        snippet = item.get("snippet","")
 
-        if "linkedin.com/in/" in link:
+        if "linkedin.com/in/" not in link:
+            continue
 
-            results.append({
-                "Name": title,
-                "Profile": link,
-                "Query": query,
-                "Date Found": datetime.now().strftime("%Y-%m-%d")
-            })
+        recruiter_name = title.split("-")[0]
+
+        work_mode = detect_work_mode(snippet)
+
+        results.append({
+
+            "Company": "Unknown",
+            "Hiring Role": query,
+            "Recruiter Name": recruiter_name,
+            "LinkedIn Profile": link,
+            "Recruiter Email": "",
+            "Work Mode": work_mode,
+            "Location": "Pune/India",
+            "Source Query": query,
+            "Date Found": datetime.now().strftime("%Y-%m-%d")
+
+        })
 
     time.sleep(2)
 
@@ -75,11 +94,12 @@ df = pd.DataFrame(results)
 try:
     old = pd.read_excel("recruiters.xlsx")
     df = pd.concat([old, df])
-    df = df.drop_duplicates(subset=["Profile"])
+    df = df.drop_duplicates(subset=["LinkedIn Profile"])
 except:
     pass
 
+
 df.to_excel("recruiters.xlsx", index=False)
 
-print("Recruiter list updated.")
+print("Recruiter database updated.")
 print("Total recruiters:", len(df))
