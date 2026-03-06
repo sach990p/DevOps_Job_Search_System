@@ -1,126 +1,101 @@
 import requests
 import pandas as pd
-import os
+import csv
 import time
-from datetime import datetime
+import os
 
-API_KEY = os.environ["GOOGLE_API_KEY"]
-CX = os.environ["SEARCH_ENGINE_ID"]
-
-queries = [
-"site:linkedin.com/in DevOps recruiter Pune",
-"site:linkedin.com/in Cloud recruiter Pune",
-"site:linkedin.com/in DevOps hiring manager India",
-"site:linkedin.com/in Site reliability recruiter India",
-"site:linkedin.com/in Kubernetes recruiter"
+keywords = [
+"devops",
+"site reliability",
+"sre",
+"cloud engineer",
+"platform engineer",
+"infrastructure engineer",
+"devsecops"
 ]
 
 results = []
 
-def detect_work_mode(text):
+def scrape_greenhouse(slug):
 
-    text = text.lower()
+    url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
 
-    if "remote" in text:
-        return "Remote"
+    r = requests.get(url,timeout=10)
 
-    if "hybrid" in text:
-        return "Hybrid"
+    data = r.json()
 
-    if "onsite" in text or "on-site" in text:
-        return "Onsite"
+    for job in data["jobs"]:
 
-    return "Unknown"
+        title = job["title"].lower()
 
+        if any(k in title for k in keywords):
 
-def detect_location(text):
-
-    text = text.lower()
-
-    if "pune" in text:
-        return "Pune"
-
-    if "bangalore" in text:
-        return "Bangalore"
-
-    if "india" in text:
-        return "India"
-
-    return "Unknown"
+            results.append({
+                "company": slug,
+                "title": job["title"],
+                "location": job["location"]["name"],
+                "link": job["absolute_url"]
+            })
 
 
-def google_search(query):
+def scrape_lever(slug):
 
-    url = "https://www.googleapis.com/customsearch/v1"
+    url = f"https://api.lever.co/v0/postings/{slug}?mode=json"
 
-    params = {
-        "key": API_KEY,
-        "cx": CX,
-        "q": query,
-        "num": 10
-    }
+    r = requests.get(url,timeout=10)
 
-    response = requests.get(url, params=params)
-    data = response.json()
+    data = r.json()
 
-    if "items" not in data:
-        return []
+    for job in data:
 
-    return data["items"]
+        title = job["text"].lower()
+
+        if any(k in title for k in keywords):
+
+            results.append({
+                "company": slug,
+                "title": job["text"],
+                "location": job["categories"]["location"],
+                "link": job["hostedUrl"]
+            })
 
 
-for query in queries:
+with open("company_database.csv") as file:
 
-    print("Searching:", query)
+    reader = csv.DictReader(file)
 
-    items = google_search(query)
+    for row in reader:
 
-    for item in items:
+        company = row["Company"]
+        ats = row["ATS"]
+        slug = row["Slug"]
 
-        title = item.get("title","")
-        link = item.get("link","")
-        snippet = item.get("snippet","")
+        try:
 
-        if "linkedin.com/in/" not in link:
-            continue
+            if ats == "Greenhouse":
+                scrape_greenhouse(slug)
 
-        recruiter = title.split("-")[0]
+            elif ats == "Lever":
+                scrape_lever(slug)
 
-        work_mode = detect_work_mode(snippet)
+            time.sleep(2)
 
-        location = detect_location(snippet)
-
-        results.append({
-
-            "Company": "Unknown",
-            "Hiring Role": query,
-            "Recruiter Name": recruiter,
-            "LinkedIn Profile": link,
-            "Work Mode": work_mode,
-            "Location": location,
-            "Date Found": datetime.now().strftime("%Y-%m-%d")
-
-        })
-
-    time.sleep(2)
+        except:
+            pass
 
 
 df = pd.DataFrame(results)
 
 try:
 
-    old = pd.read_excel("recruiters.xlsx")
+    old = pd.read_excel("devops_jobs.xlsx")
 
-    df = pd.concat([old, df])
-
-    df = df.drop_duplicates(subset=["LinkedIn Profile"])
+    df = pd.concat([old,df]).drop_duplicates()
 
 except:
-
     pass
 
 
-df.to_excel("recruiters.xlsx", index=False)
+df.to_excel("devops_jobs.xlsx",index=False)
 
-print("Recruiter database updated")
-print("Total recruiters:", len(df))
+print("Job database updated")
