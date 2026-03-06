@@ -78,7 +78,7 @@ with open("company_database.csv") as file:
             elif ats == "Lever":
                 scrape_lever(slug)
 
-            time.sleep(2)
+            time.sleep(0.3)
 
         except:
             pass
