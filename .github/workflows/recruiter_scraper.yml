@@ -27,13 +27,13 @@ jobs:
         run: |
           pip install pandas requests openpyxl
 
-      - name: Run recruiter scraper
+      - name: Run scraper
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           SEARCH_ENGINE_ID: ${{ secrets.SEARCH_ENGINE_ID }}
         run: python scraper.py
 
-      - name: Commit updated Excel
+      - name: Commit Excel
         run: |
           git config --global user.name "github-bot"
           git config --global user.email "bot@github.com"
