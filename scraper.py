@@ -1,47 +1,126 @@
+import requests
 import pandas as pd
+import os
+import time
 from datetime import datetime
 
-FILE = "recruiters.xlsx"
+API_KEY = os.environ["GOOGLE_API_KEY"]
+CX = os.environ["SEARCH_ENGINE_ID"]
 
-df = pd.read_excel(FILE)
-
-# Convert columns to string so pandas doesn't treat them as numbers
-text_columns = [
-"Career Page",
-"ATS Platform",
-"DevOps Jobs",
-"Cloud Jobs",
-"Python Jobs",
-"DevSecOps Jobs",
-"DevOps Hiring Probability",
-"Last Checked",
-"Notes"
+queries = [
+"site:linkedin.com/in DevOps recruiter Pune",
+"site:linkedin.com/in Cloud recruiter Pune",
+"site:linkedin.com/in DevOps hiring manager India",
+"site:linkedin.com/in Site reliability recruiter India",
+"site:linkedin.com/in Kubernetes recruiter"
 ]
 
-for col in text_columns:
-    df[col] = df[col].astype("string")
+results = []
 
-print("Columns detected:", df.columns)
+def detect_work_mode(text):
 
-for i,row in df.iterrows():
+    text = text.lower()
 
-    company = str(row["Company"])
+    if "remote" in text:
+        return "Remote"
 
-    df.loc[i,"Career Page"] = f"https://www.google.com/search?q={company}+careers"
+    if "hybrid" in text:
+        return "Hybrid"
 
-    df.loc[i,"ATS Platform"] = "Unknown"
+    if "onsite" in text or "on-site" in text:
+        return "Onsite"
 
-    df.loc[i,"DevOps Jobs"] = "Likely"
-    df.loc[i,"Cloud Jobs"] = "Likely"
-    df.loc[i,"Python Jobs"] = "Likely"
-    df.loc[i,"DevSecOps Jobs"] = "Possible"
+    return "Unknown"
 
-    df.loc[i,"DevOps Hiring Probability"] = "Medium"
 
-    df.loc[i,"Last Checked"] = datetime.now().strftime("%Y-%m-%d")
+def detect_location(text):
 
-print("Updating",len(df),"companies")
+    text = text.lower()
 
-df.to_excel(FILE,index=False)
+    if "pune" in text:
+        return "Pune"
 
-print("Sheet successfully updated")
+    if "bangalore" in text:
+        return "Bangalore"
+
+    if "india" in text:
+        return "India"
+
+    return "Unknown"
+
+
+def google_search(query):
+
+    url = "https://www.googleapis.com/customsearch/v1"
+
+    params = {
+        "key": API_KEY,
+        "cx": CX,
+        "q": query,
+        "num": 10
+    }
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if "items" not in data:
+        return []
+
+    return data["items"]
+
+
+for query in queries:
+
+    print("Searching:", query)
+
+    items = google_search(query)
+
+    for item in items:
+
+        title = item.get("title","")
+        link = item.get("link","")
+        snippet = item.get("snippet","")
+
+        if "linkedin.com/in/" not in link:
+            continue
+
+        recruiter = title.split("-")[0]
+
+        work_mode = detect_work_mode(snippet)
+
+        location = detect_location(snippet)
+
+        results.append({
+
+            "Company": "Unknown",
+            "Hiring Role": query,
+            "Recruiter Name": recruiter,
+            "LinkedIn Profile": link,
+            "Work Mode": work_mode,
+            "Location": location,
+            "Date Found": datetime.now().strftime("%Y-%m-%d")
+
+        })
+
+    time.sleep(2)
+
+
+df = pd.DataFrame(results)
+
+try:
+
+    old = pd.read_excel("recruiters.xlsx")
+
+    df = pd.concat([old, df])
+
+    df = df.drop_duplicates(subset=["LinkedIn Profile"])
+
+except:
+
+    pass
+
+
+df.to_excel("recruiters.xlsx", index=False)
+
+print("Recruiter database updated")
+print("Total recruiters:", len(df))
